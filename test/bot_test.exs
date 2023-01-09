@@ -2,6 +2,31 @@ defmodule BotTest do
   use ExUnit.Case
   doctest Bot
 
-  test "test" do
+  alias Node.Supervisor, as: NS
+
+  test "test neighbors" do
+    node_sup = NS.new()
+    NS.add_node(:a)
+    NS.add_node(:b, [:a])
+    assert Bot.neigbhours(:a) == [:b]
+    assert Bot.neigbhours(:b) == [:a]
   end
+
+  @tag :skip
+  test "test ping" do
+    node_sup = NS.new()
+    NS.add_node(:a)
+    NS.add_node(:b, [:a])
+    Bot.ping_task(:a, :b)
+  end
+
+  @tag :skip
+  test "test ping no connection" do
+    node_sup = NS.new()
+    NS.add_node(:a)
+    NS.add_node(:c, [:a])
+    NS.add_node(:b, [:a])
+    Bot.ping_task(:a, :c)
+  end
+
 end
