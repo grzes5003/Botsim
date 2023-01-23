@@ -4,4 +4,6 @@ defmodule Msg do
   @type ping :: {Types.addr, Types.addr}
 
   @type direct_msg :: {Types.addr, Types.addr, String.t}
+
+  @type msg :: any
 end

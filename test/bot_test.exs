@@ -8,8 +8,8 @@ defmodule BotTest do
     node_sup = NS.new()
     NS.add_node(:a)
     NS.add_node(:b, [:a])
-    assert Bot.neigbhours(:a) == [:b]
-    assert Bot.neigbhours(:b) == [:a]
+    assert Bot.neighbours(:a) == [:b]
+    assert Bot.neighbours(:b) == [:a]
   end
 
   @tag :skip

@@ -1,31 +1,33 @@
 defmodule Bot do
   @behaviour Node
 
-  use Agent
+  use GenServer
   require Logger
 
   defstruct id: "", infected: false
 
-  def start_link(id, initial_value) do
-    Agent.start_link(fn -> initial_value end, name: id)
+  def start_link(id, initial_value), do:
+    GenServer.start_link(Bot, initial_value, name: id)
+
+  @impl true
+  def init(init_state) do
+    {:ok, init_state}
   end
 
   # Node behaviour
 
-  def new(id) do
-    Agent.start_link(fn -> %Bot{} end, name: id)
-  end
-
-  def neigbhours(id) do
-    graph = Agent.get(Node.Supervisor, & &1.graph)
-    :digraph.in_neighbours(graph, id)
-  end
+  @impl true
+  def new(id), do: GenServer.start_link(Bot, %Bot{id: id}, name: id)
 
   @impl true
-  def _connected(src, target) do
-    Bot.neigbhours(src)
-    |> Enum.member?(target)
-  end
+  def neighbours(id), do: GenServer.call(id, :neighbours)
+
+  @impl true
+  def get(id), do: GenServer.call(id, :get)
+
+  @impl true
+  def pass_msg(next, payload), do:
+    GenServer.call(next, payload)
 
   # ===============
   @behaviour Behaviours.Ping
@@ -33,10 +35,11 @@ defmodule Bot do
   @impl true
   def ping_task(id, target) do
     Logger.info("starting Ping: id=#{id} target=#{target}")
-    case Bot._connected(id, target) do
+
+    case _connected(id, target) do
       true ->
-        Bot.ping(id, target)
-        {:ok}
+        sch_ref = schedule_ping(target)
+        {:ok, sch_ref}
       false ->
         {:error, "Cannot reach target #{target}"}
     end
@@ -49,19 +52,50 @@ defmodule Bot do
     Bot.ping(target, id)
   end
 
-  defp schedule_work() do
-    Process.send_after(self(), :work, 2 * 1000)
+  defp schedule_ping(target) do
+    Process.send_after(self(), {:pass_msg, {target, :ping}}, 2 * 1000)
   end
 
   # ===============
 
-  def value(id) do
-    Agent.get(id, & &1)
+  @impl true
+  def handle_call(:neighbours, _from, state) do
+    graph = Agent.get(Node.Supervisor, & &1.graph)
+    {:reply, :digraph.in_neighbours(graph, _get_id), state}
   end
 
-  def increment(id) do
-    Agent.update(id, &(&1 + 1))
+  @impl true
+  def handle_call(:get, _from, state), do: {:reply, state, state}
+
+  @impl true
+  def handle_call({:pass_msg, {target, msg}}, _from, state) do
+    if target == _get_id() do
+      GenServer.call(self(), msg)
+    else
+      _next(state, target)
+      |>pass_msg({target, msg})
+    end
+    {:reply, :ok, state}
   end
 
+  @impl true
+  def handle_call(:ping, _from, state) do
+    IO.puts(":rcv_ping")
+    {:reply, :ok, state}
+  end
+
+  # =============== util
+
+  defp _next(_, target), do: target
+
+  defp _get_id() do
+     {_, id} =  Process.info(self(), :registered_name)
+     id
+  end
+
+  defp _connected(src, target) do
+    Bot.neighbours(src)
+    |> Enum.member?(target)
+  end
 
 end

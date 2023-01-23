@@ -19,7 +19,6 @@ defmodule Node.Supervisor do
 
   @spec add_node(Types.addr, [Types.addr]) :: :ok
   def add_node(name, neighbours) do
-    IO.puts("h1")
     Agent.update(__MODULE__, fn state -> _add_node(state, name, neighbours) end)
   end
 

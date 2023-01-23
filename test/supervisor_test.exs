@@ -9,7 +9,7 @@ defmodule SupervisorTest do
     NS.add_node(:node01)
     assert NS.get_nodes() == [:node01]
     IO.inspect(NS.get_edges())
-    assert Agent.get(:node01, & &1) == %Bot {}
+    assert Bot.get(:node01) == %Bot {}
   end
 
   test "create edge" do

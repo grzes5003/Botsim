@@ -3,11 +3,15 @@ defmodule Node do
 
   @callback rcv(pid) :: String.t
 
-  @callback neigbhours(String.t) :: [String.t]
+  @callback neighbours(String.t) :: [String.t]
 
   @callback _connected(Types.addr, Types.addr) :: boolean
 
   @callback find_neigh(pid) :: [pid]
 
   @callback new(Types.addr) :: {:error, any} | {:ok, pid}
+
+  @callback get(Types.addr) :: {:error, any} | {:ok, any}
+
+  @callback pass_msg(Types.addr, Msg.msg) :: {:error, any} | {:ok, pid}
 end
