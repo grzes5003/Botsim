@@ -14,6 +14,7 @@ defmodule Node.Supervisor do
     init_state = %__MODULE__ {}
     result = Agent.start_link(fn -> init_state end, name: __MODULE__)
     Agent.update(__MODULE__, fn state -> %{state | graph: :digraph.new} end)
+    IO.inspect(self())
     result
   end
 
@@ -75,7 +76,15 @@ defmodule Node.Supervisor do
       :digraph.add_edge(state.graph, name, nei)
       :digraph.add_edge(state.graph, nei, name)
     end)
-    Bot.new(name)
+    children = [
+      %{
+        id: Bot,
+        start: {Bot, :start_link, [[id: name]]},
+        name: name
+      }
+    ]
+    # Bot.new(name)
+    Supervisor.start_link(children, strategy: :one_for_one)
     %{state | nodes: [name | state.nodes]}
   end
 

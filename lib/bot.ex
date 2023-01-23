@@ -17,7 +17,7 @@ defmodule Bot do
   # Node behaviour
 
   @impl true
-  def new(id), do: GenServer.start_link(Bot, %Bot{id: id}, name: id)
+  def new(id), do: GenServer.start_link(Bot, %Bot{id: id}, name: id,)
 
   @impl true
   def neighbours(id), do: GenServer.call(id, :neighbours)
@@ -34,8 +34,8 @@ defmodule Bot do
 
   @impl true
   def ping_task(id, target) do
-    Logger.info("starting Ping: id=#{id} target=#{target}")
-
+    Logger.info("starting Ping: id=#{id} target=#{target} self=#{inspect(self())}")
+    IO.inspect(self())
     case _connected(id, target) do
       true ->
         sch_ref = schedule_ping(target)
@@ -53,7 +53,11 @@ defmodule Bot do
   end
 
   defp schedule_ping(target) do
-    Process.send_after(self(), {:pass_msg, {target, :ping}}, 2 * 1000)
+    IO.puts("starting ping")
+    # GenServer.call(self(), {:alive})
+    # a = Process.send_after(self(), {:pass_msg, {target, :ping}}, 10)
+    a = Process.send_after(self(), :alive, 15)
+    IO.puts(Process.read_timer(a))
   end
 
   # ===============
@@ -69,11 +73,13 @@ defmodule Bot do
 
   @impl true
   def handle_call({:pass_msg, {target, msg}}, _from, state) do
+    IO.puts("got handle")
+    IO.inspect(msg)
     if target == _get_id() do
       GenServer.call(self(), msg)
     else
       _next(state, target)
-      |>pass_msg({target, msg})
+      |> pass_msg({target, msg})
     end
     {:reply, :ok, state}
   end
@@ -82,6 +88,11 @@ defmodule Bot do
   def handle_call(:ping, _from, state) do
     IO.puts(":rcv_ping")
     {:reply, :ok, state}
+  end
+
+  def handle_info(:alive, _from, state) do
+    IO.puts("alive!")
+    {:noreply, state}
   end
 
   # =============== util
