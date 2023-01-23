@@ -1,6 +1,9 @@
 defmodule Node.Supervisor do
-  alias Inspect.Stream
+  # alias Inspect.Stream
+
   use Agent
+  require Logger
+
   defstruct graph: nil, nodes: []
 
 
@@ -70,6 +73,7 @@ defmodule Node.Supervisor do
   ### internal
 
   def _add_node(state, name, neighbours) do
+    Logger.debug("Adding new node name=#{name}, neigh=#{inspect(neighbours)}")
     :digraph.add_vertex(state.graph, name)
     neighbours
     |> Enum.each(fn nei ->
@@ -78,9 +82,10 @@ defmodule Node.Supervisor do
     end)
     children = [
       %{
-        id: Bot,
-        start: {Bot, :start_link, [[id: name]]},
-        name: name
+        id: name,
+        start: {Bot, :start_link, [name, %Bot{id: name}]},
+        shutdown: :infinity,
+        restart: :temporary
       }
     ]
     # Bot.new(name)

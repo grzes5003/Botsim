@@ -1,4 +1,9 @@
 defmodule Bot do
+  @moduledoc """
+  Bot API
+  """
+  @moduledoc since: "1.0.0"
+
   @behaviour Node
 
   use GenServer
@@ -6,8 +11,10 @@ defmodule Bot do
 
   defstruct id: "", infected: false
 
-  def start_link(id, initial_value), do:
+  def start_link(id, initial_value) do
+    Logger.metadata [addr: :registered_name]
     GenServer.start_link(Bot, initial_value, name: id)
+  end
 
   @impl true
   def init(init_state) do
@@ -17,7 +24,7 @@ defmodule Bot do
   # Node behaviour
 
   @impl true
-  def new(id), do: GenServer.start_link(Bot, %Bot{id: id}, name: id,)
+  def new(id), do: GenServer.start_link(Bot, %Bot{id: id}, name: id)
 
   @impl true
   def neighbours(id), do: GenServer.call(id, :neighbours)
@@ -32,13 +39,17 @@ defmodule Bot do
   # ===============
   @behaviour Behaviours.Ping
 
+  @doc """
+  ping some `target` from node with `id`
+
+  Returns `{:ok, scheduler_reference}`
+  """
   @impl true
   def ping_task(id, target) do
     Logger.info("starting Ping: id=#{id} target=#{target} self=#{inspect(self())}")
-    IO.inspect(self())
     case _connected(id, target) do
       true ->
-        sch_ref = schedule_ping(target)
+        sch_ref = schedule_ping(id, target)
         {:ok, sch_ref}
       false ->
         {:error, "Cannot reach target #{target}"}
@@ -47,18 +58,13 @@ defmodule Bot do
 
   @impl true
   def ping(id, target) do
-    Logger.info("got Ping: id=#{id} target=#{target}")
+    Logger.debug("got Ping: id=#{id} target=#{target}")
     :timer.sleep(100)
     Bot.ping(target, id)
   end
 
-  defp schedule_ping(target) do
-    IO.puts("starting ping")
-    # GenServer.call(self(), {:alive})
-    # a = Process.send_after(self(), {:pass_msg, {target, :ping}}, 10)
-    a = Process.send_after(self(), :alive, 15)
-    IO.puts(Process.read_timer(a))
-  end
+  defp schedule_ping(id, target), do:
+    Process.send_after(id, {:ping, {target}}, 1000)
 
   # ===============
 
@@ -72,25 +78,43 @@ defmodule Bot do
   def handle_call(:get, _from, state), do: {:reply, state, state}
 
   @impl true
-  def handle_call({:pass_msg, {target, msg}}, _from, state) do
-    IO.puts("got handle")
-    IO.inspect(msg)
-    if target == _get_id() do
-      GenServer.call(self(), msg)
-    else
-      _next(state, target)
-      |> pass_msg({target, msg})
-    end
-    {:reply, :ok, state}
+  def handle_call(msg, _from, state) do
+    Logger.warn("GOT UNEXPECTED MSG #{inspect(msg)}")
+    {:reply, :wtf, state}
   end
 
   @impl true
-  def handle_call(:ping, _from, state) do
-    IO.puts(":rcv_ping")
-    {:reply, :ok, state}
+  def handle_info({:ping, {target}}, state) do
+    Logger.debug("got info ping to #{target}")
+    schedule_ping(_get_id(), target)
+    if target == _get_id() do
+      GenServer.cast(target, :ping)
+    else
+      _next(state, target)
+      |> GenServer.cast({:pass_msg, target, :ping})
+    end
+    {:noreply, state}
   end
 
-  def handle_info(:alive, _from, state) do
+  @impl true
+  def handle_cast({:pass_msg, target, msg}, state) do
+    Logger.debug(":pass_msg #{inspect{msg}} to #{inspect(target)}")
+    if target == _get_id() do
+      GenServer.cast(target, msg)
+    else
+      _next(state, target)
+      |>GenServer.cast({:pass_msg, target, msg})
+    end
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast(:ping, state) do
+    Logger.debug("got :ping")
+    {:noreply, state}
+  end
+
+  def handle_info(:alive, state) do
     IO.puts("alive!")
     {:noreply, state}
   end

@@ -12,26 +12,31 @@ defmodule BotTest do
     assert Bot.neighbours(:b) == [:a]
   end
 
-  # @tag :skip
   test "test ping" do
     node_sup = NS.new()
-    IO.inspect(node_sup)
     NS.add_node(:a)
     NS.add_node(:b, [:a])
-    ref = Process.monitor(:a)
+
+    pid = GenServer.whereis(:b)
+    :erlang.trace(pid, true, [:receive])
+
     assert {:ok, _} = Bot.ping_task(:a, :b)
-    IO.inspect(self())
-    assert_receive {:DOWN, ^ref, :process, _object, :normal}, 2000
-    assert false
+    assert_receive {:trace, ^pid, :receive, {:"$gen_cast", :ping}}, 2000
   end
 
-  @tag :skip
+
   test "test ping no connection" do
     node_sup = NS.new()
     NS.add_node(:a)
-    NS.add_node(:c, [:a])
     NS.add_node(:b, [:a])
-    Bot.ping_task(:a, :c)
+    NS.add_node(:c)
+
+    pid = GenServer.whereis(:c)
+    :erlang.trace(pid, true, [:receive])
+
+    assert {:error, "Cannot reach target c"} = Bot.ping_task(:a, :c)
+    refute_receive {:trace, ^pid, :receive, {:"$gen_cast", :ping}}, 2000
+    # flunk "abc"
   end
 
 end
