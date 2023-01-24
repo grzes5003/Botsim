@@ -1,5 +1,6 @@
 defmodule Routing.Ripv1 do
   use GenServer
+  require Logger
 
   # every 30 secs send req to neighbors for routing table
   defmodule Routing.Ripv1.Entry do
@@ -27,17 +28,35 @@ defmodule Routing.Ripv1 do
       Bot.neighbours(id)
       |> Enum.map(fn n_id -> Map.merge(%{src: n_id}, Bot.get(n_id)) end)
       |> Enum.map(fn state -> %{src: state.src, r_table: state[:r_table]} end)
-      |> IO.inspect()
   end
+
+  def request_table(id, _) do
+    graph = Agent.get(Node.Supervisor, & &1.graph)
+    :digraph.in_neighbours(graph, id)
+    |> Enum.map(fn n_id ->
+      Logger.debug("asked for neighbor #{n_id}")
+      Map.merge(%{src: n_id}, Bot.get(n_id))
+    end)
+    |> Enum.map(fn state -> %{src: state.src, r_table: state[:r_table]} end)
+end
 
   def update_table(id) do
     state = Bot.get(id)
-    own = state[:r_table]
+    own = [%{src: id, r_table: state[:r_table]}]
 
     table = request_table(id)
     |> merge_tables(own)
 
     Bot.update(id, %{state | r_table: table})
+  end
+
+  def update_table(id, state) do
+    own = [%{src: id, r_table: state[:r_table]}]
+
+    table = request_table(id, state)
+    |> merge_tables(own)
+
+    %{state | r_table: table}
   end
 
   @impl true

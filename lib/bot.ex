@@ -8,6 +8,7 @@ defmodule Bot do
 
   use GenServer
   require Logger
+  alias Routing.Ripv1, as: Rip
 
   defstruct id: "", infected: false
 
@@ -61,6 +62,12 @@ defmodule Bot do
     end
   end
 
+  def rip_task(id) do
+    Logger.info("starting RIPv1: id=#{id} self=#{inspect(self())}")
+    sch_ref = schedule_rip(id)
+    {:ok, sch_ref}
+  end
+
   @impl true
   def ping(id, target) do
     Logger.debug("got Ping: id=#{id} target=#{target}")
@@ -71,10 +78,14 @@ defmodule Bot do
   defp schedule_ping(id, target), do:
     Process.send_after(id, {:ping, {target}}, 1000)
 
+  defp schedule_rip(id), do:
+    Process.send_after(id, :rip, 500)
+
   # ===============
 
   @impl true
   def handle_call(:neighbours, _from, state) do
+    Logger.debug("neighbors call")
     graph = Agent.get(Node.Supervisor, & &1.graph)
     {:reply, :digraph.in_neighbours(graph, _get_id), state}
   end
@@ -111,6 +122,14 @@ defmodule Bot do
   end
 
   @impl true
+  def handle_info(:rip, state) do
+    id = _get_id()
+    schedule_rip(id)
+    state = Rip.update_table(id, state)
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_cast(:ping, state) do
     Logger.debug("got :ping")
     {:noreply, state}
@@ -123,8 +142,7 @@ defmodule Bot do
   @impl true
   def handle_call({:tape_state, state}, _from, old_state) do
     new_state = Map.merge(old_state, state)
-    IO.inspect(new_state)
-    IO.puts("updating")
+    Logger.debug("taping RIPv1 functionality to id=#{_get_id()} self=#{inspect(self())}")
     {:reply, :ok, new_state}
   end
 

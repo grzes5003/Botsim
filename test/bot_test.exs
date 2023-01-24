@@ -36,7 +36,6 @@ defmodule BotTest do
 
     assert {:error, "Cannot reach target c"} = Bot.ping_task(:a, :c)
     refute_receive {:trace, ^pid, :receive, {:"$gen_cast", :ping}}, 2000
-    # flunk "abc"
   end
 
 end
