@@ -83,7 +83,7 @@ defmodule Node.Supervisor do
     children = [
       %{
         id: name,
-        start: {Bot, :start_link, [name, %Bot{id: name}]},
+        start: {Bot, :start_link, [name, %{id: name}]},
         shutdown: :infinity,
         restart: :temporary
       }

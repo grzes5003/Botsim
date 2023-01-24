@@ -12,7 +12,6 @@ defmodule Bot do
   defstruct id: "", infected: false
 
   def start_link(id, initial_value) do
-    Logger.metadata [addr: :registered_name]
     GenServer.start_link(Bot, initial_value, name: id)
   end
 
@@ -24,13 +23,19 @@ defmodule Bot do
   # Node behaviour
 
   @impl true
-  def new(id), do: GenServer.start_link(Bot, %Bot{id: id}, name: id)
+  def new(id), do: GenServer.start_link(Bot, %{id: id}, name: id)
+
+  def call(id, msg) do
+    GenServer.call(id, msg)
+  end
 
   @impl true
   def neighbours(id), do: GenServer.call(id, :neighbours)
 
   @impl true
   def get(id), do: GenServer.call(id, :get)
+
+  def update(id, state),  do: GenServer.call(id, {:update, state})
 
   @impl true
   def pass_msg(next, payload), do:
@@ -78,10 +83,7 @@ defmodule Bot do
   def handle_call(:get, _from, state), do: {:reply, state, state}
 
   @impl true
-  def handle_call(msg, _from, state) do
-    Logger.warn("GOT UNEXPECTED MSG #{inspect(msg)}")
-    {:reply, :wtf, state}
-  end
+  def handle_call({:update, state}, _from, _), do: {:reply, state, state}
 
   @impl true
   def handle_info({:ping, {target}}, state) do
@@ -112,6 +114,24 @@ defmodule Bot do
   def handle_cast(:ping, state) do
     Logger.debug("got :ping")
     {:noreply, state}
+  end
+
+  def tape_state(id, state) do
+    GenServer.call(id, {:tape_state, state})
+  end
+
+  @impl true
+  def handle_call({:tape_state, state}, _from, old_state) do
+    new_state = Map.merge(old_state, state)
+    IO.inspect(new_state)
+    IO.puts("updating")
+    {:reply, :ok, new_state}
+  end
+
+  @impl true
+  def handle_call(msg, _from, state) do
+    Logger.warn("GOT UNEXPECTED MSG #{inspect(msg)}")
+    {:reply, :wtf, state}
   end
 
   def handle_info(:alive, state) do
