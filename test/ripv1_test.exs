@@ -94,7 +94,10 @@ defmodule RipV1Test do
     Process.sleep(100)
     Bot.rip_task(:e)
 
-    Process.sleep(3000)
+    Bot.ping_task(:a, :b)
+    Bot.ping_task(:d, :b)
+
+    Process.sleep(10000)
     result = Bot.get(:a)
     assert [
       %{addr: :a, age: 0, dist: 0, via: :a},
