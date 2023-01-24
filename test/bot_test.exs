@@ -16,12 +16,16 @@ defmodule BotTest do
     node_sup = NS.new()
     NS.add_node(:a)
     NS.add_node(:b, [:a])
+    NS.add_node(:c, [:b])
 
-    pid = GenServer.whereis(:b)
+    Process.sleep(100)
+    add_tables()
+
+    pid = GenServer.whereis(:c)
     :erlang.trace(pid, true, [:receive])
 
-    assert {:ok, _} = Bot.ping_task(:a, :b)
-    assert_receive {:trace, ^pid, :receive, {:"$gen_cast", :ping}}, 2000
+    assert {:ok, _} = Bot.ping_task(:a, :c)
+    assert_receive {:trace, ^pid, :receive, {:"$gen_cast", {:ping, {:a, :c}}}}, 2000
   end
 
 
@@ -34,8 +38,34 @@ defmodule BotTest do
     pid = GenServer.whereis(:c)
     :erlang.trace(pid, true, [:receive])
 
-    assert {:error, "Cannot reach target c"} = Bot.ping_task(:a, :c)
-    refute_receive {:trace, ^pid, :receive, {:"$gen_cast", :ping}}, 2000
+    assert {:ok, _} = Bot.ping_task(:a, :c)
+    refute_receive {:trace, ^pid, :receive, {:"$gen_cast", {:ping, {:a, :c}}}}, 2000
+  end
+
+  def add_tables() do
+    entry = [
+      %{addr: :a, via: :a, age: 0, dist: 0},
+      %{addr: :b, via: :b, age: 0, dist: 1},
+      %{addr: :c, via: :b, age: 0, dist: 2},
+    ]
+    table = %{r_table: entry}
+    Bot.tape_state(:a, table)
+
+    entry = [
+      %{addr: :b, via: :b, age: 0, dist: 0},
+      %{addr: :a, via: :a, age: 0, dist: 1},
+      %{addr: :c, via: :c, age: 0, dist: 2},
+    ]
+    table = %{r_table: entry}
+    Bot.tape_state(:b, table)
+
+    entry = [
+      %{addr: :c, via: :c, age: 0, dist: 0},
+      %{addr: :b, via: :b, age: 0, dist: 1},
+      %{addr: :a, via: :b, age: 0, dist: 2},
+    ]
+    table = %{r_table: entry}
+    Bot.tape_state(:c, table)
   end
 
 end

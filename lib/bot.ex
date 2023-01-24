@@ -53,13 +53,8 @@ defmodule Bot do
   @impl true
   def ping_task(id, target) do
     Logger.info("starting Ping: id=#{id} target=#{target} self=#{inspect(self())}")
-    case _connected(id, target) do
-      true ->
-        sch_ref = schedule_ping(id, target)
-        {:ok, sch_ref}
-      false ->
-        {:error, "Cannot reach target #{target}"}
-    end
+    sch_ref = schedule_ping(id, target)
+    {:ok, sch_ref}
   end
 
   def rip_task(id) do
@@ -76,7 +71,7 @@ defmodule Bot do
   end
 
   defp schedule_ping(id, target), do:
-    Process.send_after(id, {:ping, {target}}, 1000)
+    Process.send_after(id, {:ping, {id, target}}, 1000)
 
   defp schedule_rip(id), do:
     Process.send_after(id, :rip, 500)
@@ -97,25 +92,24 @@ defmodule Bot do
   def handle_call({:update, state}, _from, _), do: {:reply, state, state}
 
   @impl true
-  def handle_info({:ping, {target}}, state) do
-    Logger.debug("got info ping to #{target}")
+  def handle_info({:ping, {src, target}}, state) do
+    Logger.debug("[#{_get_id()}] got info ping from #{src} to #{target}")
     schedule_ping(_get_id(), target)
-    if target == _get_id() do
-      GenServer.cast(target, :ping)
-    else
-      _next(state, target)
-      |> GenServer.cast({:pass_msg, target, :ping})
-    end
+    _next(state, target)
+    |> elem(1)
+    |> IO.inspect()
+    |> GenServer.cast({:pass_msg, target, {:ping, {src, target}}})
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:pass_msg, target, msg}, state) do
-    Logger.debug(":pass_msg #{inspect{msg}} to #{inspect(target)}")
+    Logger.debug("[#{_get_id()}] :pass_msg #{inspect{msg}} to #{inspect(target)}")
     if target == _get_id() do
       GenServer.cast(target, msg)
     else
       _next(state, target)
+      |> elem(1)
       |>GenServer.cast({:pass_msg, target, msg})
     end
     {:noreply, state}
@@ -130,8 +124,8 @@ defmodule Bot do
   end
 
   @impl true
-  def handle_cast(:ping, state) do
-    Logger.debug("got :ping")
+  def handle_cast({:ping, {src, target}}, state) do
+    Logger.debug("[#{_get_id()}] got :ping")
     {:noreply, state}
   end
 
@@ -142,7 +136,7 @@ defmodule Bot do
   @impl true
   def handle_call({:tape_state, state}, _from, old_state) do
     new_state = Map.merge(old_state, state)
-    Logger.debug("taping RIPv1 functionality to id=#{_get_id()} self=#{inspect(self())}")
+    Logger.debug("taping #{inspect(state)} functionality to id=#{_get_id()} self=#{inspect(self())}")
     {:reply, :ok, new_state}
   end
 
@@ -159,7 +153,17 @@ defmodule Bot do
 
   # =============== util
 
-  defp _next(_, target), do: target
+  defp _next(state, target) do
+    if Map.has_key?(state, :r_table) do
+      entry = state.r_table |> Enum.find(fn item -> item[:addr] == target end)
+      via = Map.get(entry, :via)
+      if !is_nil(via) do
+        {:ok, via}
+      end
+    else
+      {:error}
+    end
+  end
 
   defp _get_id() do
      {_, id} =  Process.info(self(), :registered_name)
