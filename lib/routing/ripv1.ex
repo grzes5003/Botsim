@@ -34,13 +34,14 @@ defmodule Routing.Ripv1 do
     graph = Agent.get(Node.Supervisor, & &1.graph)
     :digraph.in_neighbours(graph, id)
     |> Enum.map(fn n_id ->
-      Logger.debug("asked for neighbor #{n_id}")
+      Logger.debug("#{id} asked for neighbor #{n_id}")
       Map.merge(%{src: n_id}, Bot.get(n_id))
     end)
     |> Enum.map(fn state -> %{src: state.src, r_table: state[:r_table]} end)
 end
 
   def update_table(id) do
+    IO.puts("upd_table #{id}")
     state = Bot.get(id)
     own = [%{src: id, r_table: state[:r_table]}]
 
@@ -51,6 +52,7 @@ end
   end
 
   def update_table(id, state) do
+    IO.puts("upd_table/2 #{id}")
     own = [%{src: id, r_table: state[:r_table]}]
 
     table = request_table(id, state)
@@ -65,6 +67,9 @@ end
   end
 
   def merge_tables(tables, own) do
+    addr = Kernel.hd(own)
+    |> Map.get(:src)
+
     foreign_tables = tables
     |> prepare_table
     |> Enum.map(fn entry -> %{entry | dist: entry[:dist] + 1 } end)
@@ -73,11 +78,15 @@ end
     |> Enum.group_by(fn entry -> entry[:addr] end)
     |> Enum.map(fn {_, group} ->
       group
+      |> Enum.filter(&(&1[:dist] <= 15))
+      |> Enum.filter(&(&1[:addr] == addr || &1[:via] != addr))
       |> Enum.sort(&(&1[:dist] <= &2[:dist]))
       |> Enum.take(1)
     end)
     |> Enum.flat_map(fn x -> x end)
   end
+
+  # addr != own && via == own
 
   def prepare_table(table) do
     table

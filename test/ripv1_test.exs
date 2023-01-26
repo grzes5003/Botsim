@@ -20,14 +20,14 @@ defmodule RipV1Test do
 
   test "test merge table" do
     tables = [
-      %{src: :a, r_table: [%{addr: :a, dist: 1}, %{addr: :b, dist: 1}]},
+      %{src: :a, r_table: [%{addr: :a, dist: 2}, %{addr: :b, dist: 1}]},
       %{src: :b, r_table: [%{addr: :b, dist: 2}, %{addr: :c, dist: 5}]}
     ]
-    own = [%{src: :x,  r_table: [%{addr: :a, dist: 0}, %{addr: :b, dist: 10}]}]
+    own = [%{src: :a,  r_table: [%{addr: :a, dist: 0}, %{addr: :b, dist: 10}]}]
 
     assert [
-      %{addr: :a, dist: 0, via: :x},
-      %{addr: :b, dist: 2, via: :a},
+      %{addr: :a, dist: 0, via: :a},
+      %{addr: :b, dist: 3, via: :b},
       %{addr: :c, dist: 6, via: :b}
     ] == Rip.merge_tables(tables, own)
 
@@ -63,7 +63,7 @@ defmodule RipV1Test do
     result = Bot.get(:a)
     assert [
       %{addr: :a, age: 0, dist: 0, via: :a},
-      %{addr: :b, age: 0, dist: 1, via: :a}
+      %{addr: :b, age: 0, dist: 1, via: :b}
     ] == result[:r_table]
   end
 
@@ -101,10 +101,10 @@ defmodule RipV1Test do
     result = Bot.get(:a)
     assert [
       %{addr: :a, age: 0, dist: 0, via: :a},
-      %{addr: :b, age: 0, dist: 1, via: :a},
-      %{addr: :c, age: 0, dist: 2, via: :a},
-      %{addr: :d, age: 0, dist: 2, via: :a},
-      %{addr: :e, age: 0, dist: 1, via: :a}
+      %{addr: :b, age: 0, dist: 1, via: :b},
+      %{addr: :c, age: 0, dist: 2, via: :b},
+      %{addr: :d, age: 0, dist: 2, via: :b},
+      %{addr: :e, age: 0, dist: 1, via: :e}
     ] == result[:r_table]
   end
 
