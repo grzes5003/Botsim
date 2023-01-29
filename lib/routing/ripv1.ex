@@ -2,6 +2,8 @@ defmodule Routing.Ripv1 do
   use GenServer
   require Logger
 
+  def refresh_rate, do: 1000
+
   # every 30 secs send req to neighbors for routing table
   defmodule Routing.Ripv1.Entry do
     defstruct addr: "", via: "", age: 0, dist: 0

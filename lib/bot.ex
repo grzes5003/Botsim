@@ -9,6 +9,7 @@ defmodule Bot do
   use GenServer
   require Logger
   alias Routing.Ripv1, as: Rip
+  alias Routing.Ara, as: Ara
 
   defstruct id: "", infected: false
 
@@ -63,6 +64,21 @@ defmodule Bot do
     {:ok, sch_ref}
   end
 
+  def ara_task(id) do
+    Logger.info("starting ARA: id=#{id} self=#{inspect(self())}")
+    GenServer.cast(id, :ara)
+    sch_ref = schedule_ara(id)
+    {:ok, sch_ref}
+  end
+
+  def get_ara_path(id, dest) do
+    alias Routing.Ara.Routing.Ara.Fant
+    fant = Fant.new(id)
+    state = Bot.get(id)
+
+    Ara.handle_ant(id, state, self(), fant)
+  end
+
   @impl true
   def ping(id, target) do
     Logger.debug("got Ping: id=#{id} target=#{target}")
@@ -71,10 +87,13 @@ defmodule Bot do
   end
 
   defp schedule_ping(id, target), do:
-    Process.send_after(id, {:ping, {id, target}}, 1000)
+    Process.send_after(id, {:ping, {id, target}}, Behaviours.Ping.refresh_rate)
 
   defp schedule_rip(id), do:
-    Process.send_after(id, :rip, 500)
+    Process.send_after(id, :rip, Rip.refresh_rate)
+
+  defp schedule_ara(id), do:
+    Process.send_after(id, :ara, Ara.refresh_rate)
 
   # ===============
 
@@ -141,6 +160,20 @@ defmodule Bot do
   end
 
   @impl true
+  def handle_call({:fant, fant}, from, state) do
+    {pid, _} = from
+    Logger.debug("[#{_get_id()}] got fant from #{inspect(pid)}")
+    {:reply, :ok, Ara.handle_ant(_get_id(), state, pid, fant)}
+  end
+
+  @impl true
+  def handle_call({:bant, bant}, from, state) do
+    {pid, _} = from
+    Logger.debug("[#{_get_id()}] got bant from #{inspect(pid)}")
+    {:reply, :ok, Ara.handle_ant(_get_id(), state, pid, bant)}
+  end
+
+  @impl true
   def handle_call(msg, _from, state) do
     Logger.warn("GOT UNEXPECTED MSG #{inspect(msg)}")
     {:reply, :wtf, state}
@@ -169,6 +202,11 @@ defmodule Bot do
      {_, id} =  Process.info(self(), :registered_name)
      id
   end
+
+  def get_id(from) do
+    {_, id} =  Process.info(from, :registered_name)
+    id
+ end
 
   defp _connected(src, target) do
     Bot.neighbours(src)
