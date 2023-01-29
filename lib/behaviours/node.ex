@@ -14,4 +14,8 @@ defmodule Node do
   @callback get(Types.addr) :: {:error, any} | {:ok, any}
 
   @callback pass_msg(Types.addr, Msg.msg) :: {:error, any} | {:ok, pid}
+
+  @callback disjoint(Types.addr, Types.addr) :: {:error, any} | {:ok}
+
+  @callback disable(Type.addr) :: {:error, any} | {:ok}
 end

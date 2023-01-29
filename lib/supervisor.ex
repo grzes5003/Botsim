@@ -70,6 +70,14 @@ defmodule Node.Supervisor do
     end)
   end
 
+  def remove(addr) do
+    Agent.update(__MODULE__, fn state -> _remove_node(state, addr) end)
+  end
+
+  def disjoint(src, dest) do
+
+  end
+
   ### internal
 
   def _add_node(state, name, neighbours) do
@@ -91,6 +99,19 @@ defmodule Node.Supervisor do
     # Bot.new(name)
     Supervisor.start_link(children, strategy: :one_for_one)
     %{state | nodes: [name | state.nodes]}
+  end
+
+  def _remove_node(state, node) do
+    :digraph.del_vertex(state.graph, node)
+
+    nodes = state.nodes
+    |> Enum.filter(fn n -> n != node end)
+
+    %{state | nodes: nodes}
+  end
+
+  def _remove_edge(state, a, b) do
+    :digraph.del_edge(state.graph, a)
   end
 
   def _add_edge(state, a, b) do

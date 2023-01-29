@@ -8,7 +8,6 @@ defmodule SupervisorTest do
     node_sup = NS.new()
     NS.add_node(:node01)
     assert NS.get_nodes() == [:node01]
-    IO.inspect(NS.get_edges())
     assert Bot.get(:node01) == %{id: :node01}
   end
 
@@ -25,7 +24,6 @@ defmodule SupervisorTest do
     node_sup = NS.new()
     NS.add_node(:node01)
     assert NS.get_nodes() == [:node01]
-    IO.inspect(NS.get_edges())
   end
 
   test "read from file" do
@@ -34,5 +32,19 @@ defmodule SupervisorTest do
 
     assert NS.get_nodes() |> length() == 4
     assert NS.get_edges() |> length() == 8
+  end
+
+  test "remove edge" do
+    node_sup = NS.new()
+
+    NS.add_node(:node01)
+    NS.add_node(:node02)
+    NS.add_node(:node03)
+
+    assert MapSet.new(NS.get_nodes()) == MapSet.new([:node01, :node02, :node03])
+
+    NS.remove(:node02)
+
+    assert MapSet.new(NS.get_nodes()) == MapSet.new([:node01, :node03])
   end
 end
