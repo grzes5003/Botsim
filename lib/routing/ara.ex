@@ -56,16 +56,6 @@ defmodule Routing.Ara do
   def handle_ant(id, state, %{type: :bant, dst: dst} = bant) when id == dst do
     state = update_bot(id, state, bant)
     Logger.debug("[#{id}] completed routing from #{id} to #{bant.src}")
-
-
-    # graph = Agent.get(Node.Supervisor, & &1.graph)
-    #   :digraph.in_neighbours(graph, id)
-    #   # |> Enum.filter(& &1 != Bot.get_id(from))
-    #   |> Enum.map(fn n_id ->
-    #     bant = Routing.Ara.Bant.new(id)
-    #     GenServer.call(n_id, {:bant, bant})
-    #     Logger.debug("#{id} relayed fant to #{n_id}")
-    #   end)
     state
   end
 
