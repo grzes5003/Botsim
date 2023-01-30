@@ -9,18 +9,18 @@ defmodule Routing.Ara do
   end
 
   defmodule Routing.Ara.Fant do
-    defstruct type: :fant, uuid: 0, src: 0, dst: 0, hops: 0
+    defstruct type: :fant, uuid: 0, src: 0, dst: 0, hops: 0, from: 0
 
-    def new(id) do
-      %Routing.Ara.Fant{uuid:  :erlang.make_ref(), src: id}
+    def new(id, dst) do
+      %Routing.Ara.Fant{uuid:  :erlang.make_ref(), src: id, dst: dst, from: id}
     end
   end
 
   defmodule Routing.Ara.Bant do
-    defstruct type: :bant, uuid: 0, src: 0, dst: 0, hops: 0
+    defstruct type: :bant, uuid: 0, src: 0, dst: 0, hops: 0, from: 0
 
-    def new(id) do
-      %Routing.Ara.Bant{uuid:  :erlang.make_ref(), src: id}
+    def new(id, dst) do
+      %Routing.Ara.Bant{uuid:  :erlang.make_ref(), src: id, dst: dst, from: id}
     end
   end
 
@@ -33,63 +33,54 @@ defmodule Routing.Ara do
     MapSet.member?(state[:seen], uuid)
   end
 
-  def update_bot(id, state, from, ant) do
-    IO.puts("===========")
-    IO.inspect(id)
-    IO.inspect(ant.src)
-    IO.puts("===========")
-    entry =%Entry{addr: ant.src, via: Bot.get_id(from), ph_val: ant.hops + 1}
-    IO.inspect(state[:r_table])
-    IO.inspect(entry)
-    IO.inspect(Bot.get_id(from))
+  def update_bot(id, state, ant) do
+    entry =%Entry{addr: ant.src, via: ant.from, ph_val: ant.hops + 1}
     table = [entry | state[:r_table]]
     seen = MapSet.put(state[:seen], ant.uuid)
     state = %{state | r_table: table,  seen: seen}
-    IO.inspect(state[:r_table])
     state
   end
 
-  def handle_ant(id, state, from, %{type: :fant, dst: dst} = fant) when id == dst do
-    state = update_bot(id, state, from, fant)
-    IO.inspect(state)
+  def handle_ant(id, state, %{type: :fant, dst: dst} = fant) when id == dst do
+    state = update_bot(id, state, fant)
     graph = Agent.get(Node.Supervisor, & &1.graph)
       :digraph.in_neighbours(graph, id)
-      |> Enum.filter(& &1 != Bot.get_id(from))
       |> Enum.map(fn n_id ->
-        bant = Routing.Ara.Bant.new(id)
-        GenServer.call(n_id, {:bant, bant})
+        bant = Routing.Ara.Bant.new(id, dst)
+        GenServer.cast(n_id, {:bant, bant})
         Logger.debug("#{id} relayed fant to #{n_id}")
       end)
     state
   end
 
-  def handle_ant(id, state, from, %{type: :bant, dst: dst} = bant) when id == dst do
-    state = update_bot(id, state, from, bant)
+  def handle_ant(id, state, %{type: :bant, dst: dst} = bant) when id == dst do
+    state = update_bot(id, state, bant)
+    Logger.debug("[#{id}] completed routing from #{id} to #{bant.src}")
 
-    graph = Agent.get(Node.Supervisor, & &1.graph)
-      :digraph.in_neighbours(graph, id)
-      |> Enum.filter(& &1 != Bot.get_id(from))
-      |> Enum.map(fn n_id ->
-        bant = Routing.Ara.Bant.new(id)
-        GenServer.call(n_id, {:bant, bant})
-        Logger.debug("#{id} relayed fant to #{n_id}")
-      end)
+
+    # graph = Agent.get(Node.Supervisor, & &1.graph)
+    #   :digraph.in_neighbours(graph, id)
+    #   # |> Enum.filter(& &1 != Bot.get_id(from))
+    #   |> Enum.map(fn n_id ->
+    #     bant = Routing.Ara.Bant.new(id)
+    #     GenServer.call(n_id, {:bant, bant})
+    #     Logger.debug("#{id} relayed fant to #{n_id}")
+    #   end)
     state
   end
 
-  def handle_ant(id, state, from, ant) do
+  def handle_ant(id, state, ant) do
     if seen_uuid?(state, ant.uuid) do
-      Logger.debug("#{id} got already seen fant from #{inspect(from)}")
+      Logger.debug("[#{id}] got already seen fant from #{inspect(ant.from)}")
       state
     else
-      IO.puts("==== handle_ant ==== #{id}")
-      state = update_bot(id, state, from, ant)
+      state = update_bot(id, state, ant)
       graph = Agent.get(Node.Supervisor, & &1.graph)
       :digraph.in_neighbours(graph, id)
-      |> Enum.filter(& &1 != Bot.get_id(from))
+      |> Enum.filter(& &1 != ant.from)
       |> Enum.map(fn n_id ->
-        ant = %{ant | hops: ant.hops + 1}
-        GenServer.call(n_id, {ant.type, ant})
+        ant = %{ant | hops: ant.hops + 1, from: id}
+        GenServer.cast(n_id, {ant.type, ant})
         Logger.debug("#{id} relayed fant to #{n_id}")
       end)
       state

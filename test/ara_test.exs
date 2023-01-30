@@ -18,14 +18,19 @@ defmodule AraTest do
     Bot.get_ara_path(:a, :b)
     Process.sleep(200)
 
-    assert match?(%{
-      id: :a,
-      r_table: [
-        %Routing.Ara.Routing.Ara.Entry{
-          addr: :a,
-          via: :b,
-          ph_val: 3
-        }]}, Bot.get(:a))
+    assert match?(
+             %{
+               id: :a,
+               r_table: [
+                 %Routing.Ara.Routing.Ara.Entry{
+                   addr: :b,
+                   via: :b,
+                   ph_val: 1
+                 }
+               ]
+             },
+             Bot.get(:a)
+           )
   end
 
   test "test distance" do
@@ -46,14 +51,70 @@ defmodule AraTest do
     Bot.get_ara_path(:a, :d)
     Process.sleep(200)
 
-    assert match?(%{
-      id: :a,
-      x: 11,
-      r_table: [
-        %Routing.Ara.Routing.Ara.Entry{
-          addr: :a,
-          via: :b,
-          ph_val: 3,
-        }]}, Bot.get(:a))
+    assert match?(
+             %{
+               id: :a,
+               r_table: [
+                 %Routing.Ara.Routing.Ara.Entry{
+                   addr: :d,
+                   via: :b,
+                   ph_val: 3
+                 }
+               ]
+             },
+             Bot.get(:a)
+           )
+
+    assert match?(
+             %{
+               id: :b,
+               r_table: [
+                 %Routing.Ara.Routing.Ara.Entry{
+                   addr: :d,
+                   via: :c,
+                   ph_val: 2
+                 },
+                 %Routing.Ara.Routing.Ara.Entry{
+                   addr: :a,
+                   via: :a,
+                   ph_val: 2
+                 }
+               ]
+             },
+             Bot.get(:b)
+           )
+
+    assert match?(
+             %{
+               id: :c,
+               r_table: [
+                 %Routing.Ara.Routing.Ara.Entry{
+                   addr: :d,
+                   via: :d,
+                   ph_val: 1
+                 },
+                 %Routing.Ara.Routing.Ara.Entry{
+                   addr: :a,
+                   via: :b,
+                   ph_val: 3
+                 }
+               ]
+             },
+             Bot.get(:c)
+           )
+
+    assert match?(
+             %{
+               id: :d,
+               r_table: [
+                 %Routing.Ara.Routing.Ara.Entry{
+                   addr: :a,
+                   via: :c,
+                   ph_val: 4
+                 }
+               ]
+             },
+             Bot.get(:d)
+           )
   end
 end

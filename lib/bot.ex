@@ -73,10 +73,11 @@ defmodule Bot do
 
   def get_ara_path(id, dest) do
     alias Routing.Ara.Routing.Ara.Fant
-    fant = Fant.new(id)
+    fant = Fant.new(id, dest)
     state = Bot.get(id)
 
-    Ara.handle_ant(id, state, self(), fant)
+    IO.puts("=-=-= #{inspect(self())}")
+    Ara.handle_ant(id, state, fant)
   end
 
   @impl true
@@ -160,17 +161,15 @@ defmodule Bot do
   end
 
   @impl true
-  def handle_call({:fant, fant}, from, state) do
-    {pid, _} = from
-    Logger.debug("[#{_get_id()}] got fant from #{inspect(pid)}")
-    {:reply, :ok, Ara.handle_ant(_get_id(), state, pid, fant)}
+  def handle_cast({:fant, fant}, state) do
+    Logger.debug("[#{_get_id()}] got fant from #{inspect(fant.from)}")
+    {:noreply, Ara.handle_ant(_get_id(), state, fant)}
   end
 
   @impl true
-  def handle_call({:bant, bant}, from, state) do
-    {pid, _} = from
-    Logger.debug("[#{_get_id()}] got bant from #{inspect(pid)}")
-    {:reply, :ok, Ara.handle_ant(_get_id(), state, pid, bant)}
+  def handle_cast({:bant, bant}, state) do
+    Logger.debug("[#{_get_id()}] got bant from #{inspect(bant.from)}")
+    {:noreply, Ara.handle_ant(_get_id(), state, bant)}
   end
 
   @impl true
@@ -203,8 +202,10 @@ defmodule Bot do
      id
   end
 
+  @spec get_id(pid) :: atom
   def get_id(from) do
     {_, id} =  Process.info(from, :registered_name)
+    IO.puts("=== get_id '#{id}'")
     id
  end
 
