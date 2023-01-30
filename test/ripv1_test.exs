@@ -1,6 +1,7 @@
 defmodule RipV1Test do
   use ExUnit.Case
 
+  alias Behaviours.Ping
   alias Routing.Ripv1, as: Rip
   alias Node.Supervisor, as: NS
 
@@ -106,6 +107,40 @@ defmodule RipV1Test do
       %{addr: :d, age: 0, dist: 2, via: :b},
       %{addr: :e, age: 0, dist: 1, via: :e}
     ] == result[:r_table]
+  end
+
+  test "simple ping task" do
+    NS.new()
+    Observer.new()
+
+    NS.add_node(:a)
+    NS.add_node(:b, [:a])
+    NS.add_node(:c, [:b])
+    NS.add_node(:d, [:b])
+    NS.add_node(:e, [:a])
+    Process.sleep(100)
+
+    Rip.tape_bot(:a)
+    Rip.tape_bot(:b)
+    Rip.tape_bot(:c)
+    Rip.tape_bot(:d)
+    Rip.tape_bot(:e)
+    Process.sleep(100)
+
+    Bot.rip_task(:a)
+    Process.sleep(100)
+    Bot.rip_task(:b)
+    Process.sleep(100)
+    Bot.rip_task(:c)
+    Process.sleep(100)
+    Bot.rip_task(:d)
+    Process.sleep(100)
+    Bot.rip_task(:e)
+    Process.sleep(1000)
+
+    Bot.ping_task(:a, :d)
+    Process.sleep(Ping.refresh_rate*2)
+    assert 1 == Observer.get_counter(:d, :ping_rcv)
   end
 
 end

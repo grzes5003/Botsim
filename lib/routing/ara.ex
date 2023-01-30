@@ -5,7 +5,7 @@ defmodule Routing.Ara do
   def refresh_rate, do: 10000
 
   defmodule Routing.Ara.Entry do
-    defstruct addr: "", via: "", ph_val: 0
+    defstruct addr: "", via: "", dist: 0
   end
 
   defmodule Routing.Ara.Fant do
@@ -25,7 +25,7 @@ defmodule Routing.Ara do
   end
 
   def tape_bot(id) do
-    table = %{r_table: [], seen: MapSet.new}
+    table = %{r_table: MapSet.new, seen: MapSet.new}
     Bot.tape_state(id, table)
   end
 
@@ -34,8 +34,8 @@ defmodule Routing.Ara do
   end
 
   def update_bot(id, state, ant) do
-    entry =%Entry{addr: ant.src, via: ant.from, ph_val: ant.hops + 1}
-    table = [entry | state[:r_table]]
+    entry =%Entry{addr: ant.src, via: ant.from, dist: ant.hops + 1}
+    table = MapSet.put(state[:r_table], entry)
     seen = MapSet.put(state[:seen], ant.uuid)
     state = %{state | r_table: table,  seen: seen}
     state

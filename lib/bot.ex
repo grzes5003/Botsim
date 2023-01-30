@@ -114,6 +114,7 @@ defmodule Bot do
   @impl true
   def handle_info({:ping, {src, target}}, state) do
     Logger.debug("[#{_get_id()}] got info ping from #{src} to #{target}")
+    Observer.inc_counter(_get_id(), :ping_sent)
     schedule_ping(_get_id(), target)
     _next(state, target)
     |> elem(1)
@@ -125,6 +126,7 @@ defmodule Bot do
   @impl true
   def handle_cast({:pass_msg, target, msg}, state) do
     Logger.debug("[#{_get_id()}] :pass_msg #{inspect{msg}} to #{inspect(target)}")
+    Observer.inc_counter(_get_id(), :msg_passed)
     if target == _get_id() do
       GenServer.cast(target, msg)
     else
@@ -146,6 +148,7 @@ defmodule Bot do
   @impl true
   def handle_cast({:ping, {src, target}}, state) do
     Logger.debug("[#{_get_id()}] got :ping")
+    Observer.inc_counter(_get_id(), :ping_rcv)
     {:noreply, state}
   end
 
@@ -187,10 +190,16 @@ defmodule Bot do
 
   defp _next(state, target) do
     if Map.has_key?(state, :r_table) do
-      entry = state.r_table |> Enum.find(fn item -> item[:addr] == target end)
-      via = Map.get(entry, :via)
-      if !is_nil(via) do
-        {:ok, via}
+      entry = state.r_table
+      |> Enum.filter(fn item -> Map.get(item, :addr) == target end)
+      |> Enum.take(1)
+      if [] != entry do
+        via = Map.get(entry |> hd, :via)
+        if !is_nil(via) do
+          {:ok, via}
+        end
+      else
+        {:error}
       end
     else
       {:error}

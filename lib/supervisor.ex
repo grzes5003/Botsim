@@ -17,7 +17,6 @@ defmodule Node.Supervisor do
     init_state = %__MODULE__ {}
     result = Agent.start_link(fn -> init_state end, name: __MODULE__)
     Agent.update(__MODULE__, fn state -> %{state | graph: :digraph.new} end)
-    IO.inspect(self())
     result
   end
 
