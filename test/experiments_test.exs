@@ -47,23 +47,28 @@ defmodule ExperimentsTest do
   test "network performance ara" do
     setup_network()
 
-    ExperimentsTest.Perf.start("result01")
+    ExperimentsTest.Perf.start("result02")
 
-    Ara.tape_bot(:A)
-    Ara.tape_bot(:B)
-    Ara.tape_bot(:C)
-    Ara.tape_bot(:D)
-    Ara.tape_bot(:E)
-    Ara.tape_bot(:F)
-    Ara.tape_bot(:G)
-    Ara.tape_bot(:H)
-    Ara.tape_bot(:I)
-    Ara.tape_bot(:J)
-
-    Bot.get_ara_path(:A, :I)
+    Ara.tape_to_all()
     Process.sleep(200)
 
+    Bot.ping_task(:A, :I)
+    Bot.ping_task(:F, :J)
+
+    Bot.get_ara_path(:A, :I)
+    Bot.get_ara_path(:F, :J)
+    Process.sleep(10000)
+
+    Bot.get_ara_path(:E, :D)
+    Bot.get_ara_path(:F, :J)
+
+    Bot.ping_task(:E, :D)
+    Bot.ping_task(:F, :J)
+
+    Process.sleep(30000)
+
     ExperimentsTest.Perf.gracefull_stop()
+    Process.sleep(200)
   end
 
   test "network performance rip" do
@@ -72,44 +77,18 @@ defmodule ExperimentsTest do
 
     ExperimentsTest.Perf.start("result01")
 
-    Rip.tape_bot(:A)
-    Rip.tape_bot(:B)
-    Rip.tape_bot(:C)
-    Rip.tape_bot(:D)
-    Rip.tape_bot(:E)
-    Rip.tape_bot(:F)
-    Rip.tape_bot(:G)
-    Rip.tape_bot(:H)
-    Rip.tape_bot(:I)
-    Rip.tape_bot(:J)
-
-    Process.sleep(200)
-    Bot.rip_task(:A)
-    Process.sleep(100)
-    Bot.rip_task(:B)
-    Process.sleep(100)
-    Bot.rip_task(:C)
-    Process.sleep(100)
-    Bot.rip_task(:D)
-    Process.sleep(100)
-    Bot.rip_task(:E)
-    Process.sleep(100)
-    Bot.rip_task(:F)
-    Process.sleep(100)
-    Bot.rip_task(:G)
-    Process.sleep(100)
-    Bot.rip_task(:H)
-    Process.sleep(100)
-    Bot.rip_task(:H)
-    Process.sleep(100)
-    Bot.rip_task(:I)
-    Process.sleep(100)
-    Bot.rip_task(:J)
+    Rip.tape_to_all()
+    Rip.rip_task_to_all()
 
     Bot.ping_task(:A, :I)
     Bot.ping_task(:F, :J)
 
     Process.sleep(10000)
+
+    Bot.ping_task(:E, :D)
+    Bot.ping_task(:H, :A)
+
+    Process.sleep(30000)
 
     ExperimentsTest.Perf.gracefull_stop()
     Process.sleep(200)

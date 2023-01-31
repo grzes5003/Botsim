@@ -26,6 +26,19 @@ defmodule Routing.Ripv1 do
     Bot.tape_state(id, table)
   end
 
+  def tape_to_all() do
+    Node.Supervisor.get_nodes()
+    |> Enum.each(& tape_bot(&1))
+  end
+
+  def rip_task_to_all() do
+    Node.Supervisor.get_nodes()
+    |> Enum.each(fn id ->
+      Bot.rip_task(id)
+      Process.sleep(100)
+    end)
+  end
+
   def request_table(id) do
       Bot.neighbours(id)
       |> Enum.map(fn n_id -> Map.merge(%{src: n_id}, Bot.get(n_id)) end)

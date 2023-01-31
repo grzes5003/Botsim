@@ -23,6 +23,11 @@ defmodule Observer do
       do: Agent.update(__MODULE__, &Map.put_new(&1, id, %Observer.Entry{}))
   end
 
+  def tape_to_all() do
+    Node.Supervisor.get_nodes()
+    |> Enum.each(& tape_bot(&1))
+  end
+
   def inc_counter(id, counter) do
     unless Process.whereis(__MODULE__) == nil do
       Agent.update(__MODULE__, fn state ->

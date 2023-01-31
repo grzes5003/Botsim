@@ -29,6 +29,11 @@ defmodule Routing.Ara do
     Bot.tape_state(id, table)
   end
 
+  def tape_to_all() do
+    Node.Supervisor.get_nodes()
+    |> Enum.each(& tape_bot(&1))
+  end
+
   def seen_uuid?(state, uuid) do
     MapSet.member?(state[:seen], uuid)
   end
