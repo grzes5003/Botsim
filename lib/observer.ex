@@ -2,7 +2,7 @@ defmodule Observer do
   use Agent
 
   defmodule Observer.Entry do
-    defstruct ping_rcv: 0, ping_sent: 0, ping_passed: 0, msg_passed: 0
+    defstruct ping_rcv: 0, ping_sent: 0, ping_passed: 0, msg_passed: 0, dest_unreach: 0
   end
 
   defstruct node_map: MapSet.new()
@@ -38,6 +38,16 @@ defmodule Observer do
       Agent.get(__MODULE__, fn state ->
         Map.get(state, id)
         |> Map.get(counter)
+      end)
+    end
+  end
+
+  def sum_counter(counter) do
+    unless Process.whereis(__MODULE__) == nil do
+      Agent.get(__MODULE__, fn state ->
+        state
+        |> Enum.map(fn {_, bot} -> Map.get(bot, counter) end)
+        |> Enum.sum()
       end)
     end
   end

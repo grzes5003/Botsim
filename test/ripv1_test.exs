@@ -143,4 +143,60 @@ defmodule RipV1Test do
     assert 1 == Observer.get_counter(:d, :ping_rcv)
   end
 
+  test "network performance rip" do
+    setup_network()
+
+    Rip.tape_bot(:A)
+    Rip.tape_bot(:B)
+    Rip.tape_bot(:C)
+    Rip.tape_bot(:D)
+    Rip.tape_bot(:E)
+    Rip.tape_bot(:F)
+    Rip.tape_bot(:G)
+    Rip.tape_bot(:H)
+    Rip.tape_bot(:I)
+    Rip.tape_bot(:J)
+
+    Process.sleep(200)
+    Bot.rip_task(:A)
+    Process.sleep(100)
+    Bot.rip_task(:B)
+    Process.sleep(100)
+    Bot.rip_task(:C)
+    Process.sleep(100)
+    Bot.rip_task(:D)
+    Process.sleep(100)
+    Bot.rip_task(:E)
+    Process.sleep(100)
+    Bot.rip_task(:F)
+    Process.sleep(100)
+    Bot.rip_task(:G)
+    Process.sleep(100)
+    Bot.rip_task(:H)
+    Process.sleep(100)
+    Bot.rip_task(:H)
+    Process.sleep(100)
+    Bot.rip_task(:I)
+    Process.sleep(100)
+    Bot.rip_task(:J)
+
+    Bot.ping_task(:A, :I)
+    Bot.ping_task(:F, :J)
+
+    Process.sleep(10000)
+
+    assert 8 == Observer.get_counter(:J, :ping_rcv)
+
+    assert 3 == Observer.sum_counter(:dest_unreach)
+    assert 2 == Observer.get_counter(:A, :dest_unreach)
+    assert 1 == Observer.get_counter(:F, :dest_unreach)
+  end
+
+  def setup_network() do
+    NS.new()
+    Observer.new()
+
+    NS.update_from_file("test/resources/graph01.txt")
+  end
+
 end

@@ -116,10 +116,12 @@ defmodule Bot do
     Logger.debug("[#{_get_id()}] got info ping from #{src} to #{target}")
     Observer.inc_counter(_get_id(), :ping_sent)
     schedule_ping(_get_id(), target)
-    _next(state, target)
-    |> elem(1)
-    |> IO.inspect()
-    |> GenServer.cast({:pass_msg, target, {:ping, {src, target}}})
+    case _next(state, target) do
+      {:ok, via} -> via |> GenServer.cast({:pass_msg, target, {:ping, {src, target}}})
+      {:error} ->
+        Logger.debug("[#{_get_id()}] Host unreachable #{target}")
+        Observer.inc_counter(_get_id(), :dest_unreach)
+    end
     {:noreply, state}
   end
 
@@ -130,9 +132,13 @@ defmodule Bot do
     if target == _get_id() do
       GenServer.cast(target, msg)
     else
-      _next(state, target)
-      |> elem(1)
-      |>GenServer.cast({:pass_msg, target, msg})
+      case _next(state, target) do
+        {:ok, via} -> via
+                      |> GenServer.cast({:pass_msg, target, msg})
+        {:error} ->
+          Logger.debug("[#{_get_id()}] Host unreachable #{target}")
+          Observer.inc_counter(_get_id(), :dest_unreach)
+      end
     end
     {:noreply, state}
   end
