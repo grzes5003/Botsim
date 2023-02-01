@@ -94,14 +94,70 @@ defmodule ExperimentsTest do
     Process.sleep(200)
   end
 
+  test "network performance rip with timeouts" do
+    setup_network()
+    Process.sleep(100)
+
+    ExperimentsTest.Perf.start("result01_t")
+
+    Rip.tape_to_all()
+    Rip.rip_task_to_all()
+
+    Bot.ping_task(:A, :I)
+    Bot.ping_task(:F, :J)
+
+    Process.sleep(10000)
+
+    Bot.ping_task(:E, :D)
+    Bot.ping_task(:H, :A)
+
+    Process.sleep(10000)
+    NS.remove(:C)
+    Process.sleep(10000)
+    NS.remove(:B)
+    Process.sleep(10000)
+
+    ExperimentsTest.Perf.gracefull_stop()
+    Process.sleep(200)
+  end
+
+  test "network performance ara with timeouts" do
+    setup_network()
+
+    ExperimentsTest.Perf.start("result02_t")
+
+    Ara.tape_to_all()
+    Process.sleep(200)
+
+    Bot.ping_task(:A, :I)
+    Bot.ping_task(:F, :J)
+
+    Bot.get_ara_path(:A, :I)
+    Bot.get_ara_path(:F, :J)
+    Process.sleep(10000)
+
+    Bot.get_ara_path(:E, :D)
+    Bot.get_ara_path(:F, :J)
+
+    Bot.ping_task(:E, :D)
+    Bot.ping_task(:F, :J)
+
+    Process.sleep(10000)
+    NS.remove(:C)
+    Process.sleep(10000)
+    NS.remove(:B)
+    Process.sleep(10000)
+
+    ExperimentsTest.Perf.gracefull_stop()
+    Process.sleep(200)
+  end
+
   def setup_network() do
     NS.new()
     Observer.new()
 
     NS.update_from_file("test/resources/graph01.txt")
   end
-
-
 
   def perf_measure(filename) do
     {:ok, file} = File.open("resources/results/#{filename}.log", [:write])
