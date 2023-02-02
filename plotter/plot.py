@@ -44,34 +44,39 @@ def obj2df(results: [Res]) -> pd.DataFrame:
 
 
 def plot_eff(df: pd.DataFrame):
-    df['ping_rcv_r'] = df['ping_rcv'].diff()
+    def my_fun(x):
+        return x.iloc[-1] - x.iloc[0]
+
+    df['ping_rcv_r'] = df['ping_rcv'].rolling(50).apply(my_fun)
+    # df['ping_rcv_r'] = df['ping_rcv'].diff()
 
     sns.set_theme(style="darkgrid")
     ax = sns.pointplot(x=df.index, y='ping_rcv_r', data=df)
 
     ax.set(ylabel='Diff ping received')
-    ax.set_title('Efficiency based on used cores')
+    ax.set_title('Pings received RIPv1')
     ax.set(xlabel='Ticks')
-    ax.legend(title='Size of problem [n]')
+    ax.legend(title='Packets difference')
 
     plt.show()
 
-    df['msg_passed_r'] = df['msg_passed'].diff()
+    df['msg_passed_r'] = df['msg_passed'].rolling(50).apply(my_fun)
+    # df['msg_passed_r'] = df['msg_passed'].diff()
 
     sns.set_theme(style="darkgrid")
     ax = sns.pointplot(x=df.index, y='msg_passed_r', data=df)
 
     ax.set(ylabel='Diff messages passed')
-    ax.set_title('Efficiency based on used cores')
+    ax.set_title('Pings passed RIPv1')
     ax.set(xlabel='Ticks')
-    ax.legend(title='Size of problem [n]')
+    ax.legend(title='Packets difference')
 
     plt.show()
 
 
 if __name__ == '__main__':
 
-    path_perf = '../resources/results/result01.log'
+    path_perf = '../resources/results/result02_t.log'
     res = read_logs(path_perf)
     df = obj2df(res)
 
